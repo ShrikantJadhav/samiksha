@@ -202,7 +202,7 @@ func buildUserPrompt(label, diff, intent, workdir string, allowRun bool) string 
 		b.WriteString("\n")
 	}
 	b.WriteString("```\n\n")
-	b.WriteString("Begin by running blast_scan and examining the diff, then investigate as needed and deliver your verdict.")
+	b.WriteString("Begin by running blast_scan. Then examine the diff and compare the actual changes against the stated intent. Investigate the highest-risk findings in context (read relevant files or snippets as needed) before delivering your verdict — do not stop at scan results alone.")
 	return b.String()
 }
 
