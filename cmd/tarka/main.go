@@ -8,20 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ShrikantJadhav/viveka/internal/agent"
-	"github.com/ShrikantJadhav/viveka/internal/diffsource"
-	"github.com/ShrikantJadhav/viveka/internal/llm"
-	"github.com/ShrikantJadhav/viveka/internal/tools"
+	"github.com/ShrikantJadhav/tarka/internal/agent"
+	"github.com/ShrikantJadhav/tarka/internal/diffsource"
+	"github.com/ShrikantJadhav/tarka/internal/llm"
+	"github.com/ShrikantJadhav/tarka/internal/tools"
 )
 
 var version = "0.1.0-dev"
 
-const usageText = `viveka — discerning review for code changes.
+const usageText = `tarka — reasoned review for code changes.
 
 Usage:
-  viveka review [flags]    review a diff and produce an evidence-backed verdict
-  viveka version
-  viveka help
+  tarka review [flags]    review a diff and produce an evidence-backed verdict
+  tarka version
+  tarka help
 
 Diff source (review):
   --base <ref>       diff <ref>...HEAD (default: origin/HEAD, main, master, or HEAD~1)
@@ -33,12 +33,12 @@ Review context:
   --intent <text>    what the change claims to do (e.g. PR title/description)
 
 Model (OpenAI-compatible chat completions):
-  --model <id>       model name (env: VIVEKA_MODEL, OPENAI_MODEL)
-  --base-url <url>   API base URL (env: VIVEKA_BASE_URL, OPENAI_BASE_URL; default: https://api.openai.com/v1)
-  --api-key <key>    API key (env: VIVEKA_API_KEY, OPENAI_API_KEY)
+  --model <id>       model name (env: TARKA_MODEL, OPENAI_MODEL)
+  --base-url <url>   API base URL (env: TARKA_BASE_URL, OPENAI_BASE_URL; default: https://api.openai.com/v1)
+  --api-key <key>    API key (env: TARKA_API_KEY, OPENAI_API_KEY)
 
 Tools:
-  --blast <path>     path to blast binary (env: VIVEKA_BLAST; default: blast)
+  --blast <path>     path to blast binary (env: TARKA_BLAST; default: blast)
   --allow-run        allow the agent to execute shell commands (e.g. run tests)
   --run-timeout <d>  timeout per command when --allow-run is set (default: 60s)
   --max-steps <n>    maximum agent steps/tool rounds (default: 12)
@@ -62,7 +62,7 @@ func run(args []string) int {
 	case "review":
 		return cmdReview(args[1:])
 	case "version", "--version", "-v":
-		fmt.Printf("viveka %s\n", version)
+		fmt.Printf("tarka %s\n", version)
 		return 0
 	case "help", "-h", "--help":
 		fmt.Print(usageText)
@@ -72,7 +72,7 @@ func run(args []string) int {
 		if strings.HasPrefix(args[0], "-") {
 			return cmdReview(args)
 		}
-		fmt.Fprintf(os.Stderr, "viveka: unknown command %q\n\n%s", args[0], usageText)
+		fmt.Fprintf(os.Stderr, "tarka: unknown command %q\n\n%s", args[0], usageText)
 		return 2
 	}
 }
@@ -114,21 +114,21 @@ func cmdReview(args []string) int {
 
 	diffText, diffLabel, err := src.Read()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "viveka: reading diff: %v\n", err)
+		fmt.Fprintf(os.Stderr, "tarka: reading diff: %v\n", err)
 		return 2
 	}
 	if strings.TrimSpace(diffText) == "" {
-		fmt.Println("viveka: no changes detected")
+		fmt.Println("tarka: no changes detected")
 		return 0
 	}
 
-	resolvedModel := firstNonEmpty(*model, os.Getenv("VIVEKA_MODEL"), os.Getenv("OPENAI_MODEL"))
-	resolvedBaseURL := firstNonEmpty(*baseURL, os.Getenv("VIVEKA_BASE_URL"), os.Getenv("OPENAI_BASE_URL"), os.Getenv("OPENAI_API_BASE"), "https://api.openai.com/v1")
-	resolvedKey := firstNonEmpty(*apiKey, os.Getenv("VIVEKA_API_KEY"), os.Getenv("OPENAI_API_KEY"))
-	resolvedBlast := firstNonEmpty(*blastBin, os.Getenv("VIVEKA_BLAST"), "blast")
+	resolvedModel := firstNonEmpty(*model, os.Getenv("TARKA_MODEL"), os.Getenv("OPENAI_MODEL"))
+	resolvedBaseURL := firstNonEmpty(*baseURL, os.Getenv("TARKA_BASE_URL"), os.Getenv("OPENAI_BASE_URL"), os.Getenv("OPENAI_API_BASE"), "https://api.openai.com/v1")
+	resolvedKey := firstNonEmpty(*apiKey, os.Getenv("TARKA_API_KEY"), os.Getenv("OPENAI_API_KEY"))
+	resolvedBlast := firstNonEmpty(*blastBin, os.Getenv("TARKA_BLAST"), "blast")
 
 	if resolvedModel == "" {
-		fmt.Fprintln(os.Stderr, "viveka: no model configured (set --model or VIVEKA_MODEL / OPENAI_MODEL)")
+		fmt.Fprintln(os.Stderr, "tarka: no model configured (set --model or TARKA_MODEL / OPENAI_MODEL)")
 		return 2
 	}
 
@@ -147,7 +147,7 @@ func cmdReview(args []string) int {
 
 	var logFn func(string)
 	if !*quiet {
-		logFn = func(msg string) { fmt.Fprintln(os.Stderr, "viveka:", msg) }
+		logFn = func(msg string) { fmt.Fprintln(os.Stderr, "tarka:", msg) }
 	}
 
 	logf := func(format string, args ...any) {
@@ -163,7 +163,7 @@ func cmdReview(args []string) int {
 		Log:      logFn,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "viveka: %v\n", err)
+		fmt.Fprintf(os.Stderr, "tarka: %v\n", err)
 		return 2
 	}
 

@@ -1,21 +1,21 @@
-# Viveka
+# Tarka
 
-**विवेक** — *discernment*: the capacity to distinguish a genuinely sound change from one that only appears to pass.
+**तर्क** — *reasoning, logical inference*: working from evidence to a sound conclusion.
 
-`viveka` is a reviewer agent for code changes. Given a diff, it runs an agent loop — **model → tool calls → observations → verdict** — to gather evidence and decide whether the change is sound or merely *looks* green because its guardrails were weakened.
+`tarka` is a reviewer agent for code changes. Given a diff, it runs an agent loop — **model → tool calls → observations → verdict** — to gather evidence and reason about whether the change is genuinely sound or merely *looks* green because its guardrails were weakened.
 
 It is designed for the failure mode where "tests pass" is a claim, not proof: skipped tests, removed assertions, silenced linters, relaxed CI, untested new logic, or hidden capabilities.
 
 ## How it works
 
-Viveka is agentic: it chooses its next step from what it observes.
+Tarka is agentic: it chooses its next step from what it observes.
 
 1. Reads the diff under review and runs [`blast`](../blast) (deterministic diff forensics) as an instrument panel.
 2. Forms hypotheses about what the change claims to do and which signals matter.
 3. Investigates using tools — reading files, searching code, and (optionally) running commands/tests — following up on suspicious findings rather than guessing.
 4. Emits an evidence-backed verdict: `SOUND`, `CONCERNS`, or `UNSOUND`, with cited observations and a recommendation. It never auto-merges.
 
-`blast` provides the hard, deterministic floor; viveka does the reasoning above it, spending model calls only where evidence needs interpretation.
+`blast` provides the hard, deterministic floor; tarka does the reasoning above it, spending model calls only where evidence needs interpretation.
 
 ## Status
 
@@ -24,7 +24,7 @@ Viveka is agentic: it chooses its next step from what it observes.
 ## Build
 
 ```sh
-go build -o viveka ./cmd/viveka
+go build -o tarka ./cmd/tarka
 # or: make build
 ```
 
@@ -33,30 +33,30 @@ Requires Go 1.23+. No external Go dependencies.
 ## Requirements
 
 - An OpenAI-compatible chat completions API (OpenAI, many hosted providers, or a local server such as Ollama / LM Studio / vLLM exposing a compatible endpoint).
-- [`blast`](../blast) on your `PATH` (or pass `--blast /path/to/blast`) for deterministic diff findings. Viveka can still review without it, but with less signal.
+- [`blast`](../blast) on your `PATH` (or pass `--blast /path/to/blast`) for deterministic diff findings. Tarka can still review without it, but with less signal.
 
 ## Usage
 
 ```sh
 # review the current branch against its base (like a PR)
-export VIVEKA_MODEL="gpt-4o-mini"        # or any compatible model id
-export OPENAI_API_KEY="..."               # or VIVEKA_API_KEY
-./viveka review
+export TARKA_MODEL="gpt-4o-mini"        # or any compatible model id
+export OPENAI_API_KEY="..."               # or TARKA_API_KEY
+./tarka review
 
 # common forms
-./viveka review --base main
-./viveka review --staged
-./viveka review --patch change.patch
-./viveka review --intent "fix flaky session lookup"
+./tarka review --base main
+./tarka review --staged
+./tarka review --patch change.patch
+./tarka review --intent "fix flaky session lookup"
 
 # allow the agent to run tests/commands when investigating
-./viveka review --allow-run
+./tarka review --allow-run
 ```
 
 If `blast` lives elsewhere (for example the sibling repo in this workspace):
 
 ```sh
-./viveka review --blast ../blast/blast
+./tarka review --blast ../blast/blast
 ```
 
 ### Flags
@@ -68,10 +68,10 @@ If `blast` lives elsewhere (for example the sibling repo in this workspace):
 | `--patch <file>` | read a unified diff from a file, or `-` for stdin |
 | `--dir <path>` | working directory / repository root (default: cwd) |
 | `--intent <text>` | what the change claims to do (PR title/description) |
-| `--model <id>` | model name (env: `VIVEKA_MODEL`, `OPENAI_MODEL`) |
-| `--base-url <url>` | API base URL (env: `VIVEKA_BASE_URL`, `OPENAI_BASE_URL`; default `https://api.openai.com/v1`) |
-| `--api-key <key>` | API key (env: `VIVEKA_API_KEY`, `OPENAI_API_KEY`) |
-| `--blast <path>` | path to `blast` binary (env: `VIVEKA_BLAST`; default `blast`) |
+| `--model <id>` | model name (env: `TARKA_MODEL`, `OPENAI_MODEL`) |
+| `--base-url <url>` | API base URL (env: `TARKA_BASE_URL`, `OPENAI_BASE_URL`; default `https://api.openai.com/v1`) |
+| `--api-key <key>` | API key (env: `TARKA_API_KEY`, `OPENAI_API_KEY`) |
+| `--blast <path>` | path to `blast` binary (env: `TARKA_BLAST`; default `blast`) |
 | `--allow-run` | let the agent execute shell commands (e.g. run tests) |
 | `--run-timeout <d>` | per-command timeout when `--allow-run` is set (default `60s`) |
 | `--max-steps <n>` | maximum agent tool rounds (default `12`) |
@@ -98,7 +98,7 @@ Progress is written to stderr; the verdict is written to stdout. Exit `0` when a
 ## Layout
 
 ```
-cmd/viveka        CLI, flags, wiring
+cmd/tarka        CLI, flags, wiring
 internal/agent    agent loop and system prompt
 internal/llm      chat client interface and OpenAI-compatible implementation
 internal/tools    tool registry (diff, blast, fs, search, run)

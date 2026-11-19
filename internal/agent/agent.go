@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ShrikantJadhav/viveka/internal/llm"
-	"github.com/ShrikantJadhav/viveka/internal/tools"
+	"github.com/ShrikantJadhav/tarka/internal/llm"
+	"github.com/ShrikantJadhav/tarka/internal/tools"
 )
 
 // Options controls an agent run.
