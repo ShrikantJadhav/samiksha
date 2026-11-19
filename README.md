@@ -1,21 +1,21 @@
-# Tarka
+# Pramana
 
-**तर्क** — *reasoning, logical inference*: working from evidence to a sound conclusion.
+**प्रमाण** — *valid evidence, proof*: reaching conclusions grounded in what can be shown, not guesswork.
 
-`tarka` is a reviewer agent for code changes. Given a diff, it runs an agent loop — **model → tool calls → observations → verdict** — to gather evidence and reason about whether the change is genuinely sound or merely *looks* green because its guardrails were weakened.
+`pramana` is a reviewer agent for code changes. Given a diff, it runs an agent loop — **model → tool calls → observations → verdict** — to gather evidence and establish whether the change is genuinely sound or merely *looks* green because its guardrails were weakened.
 
 It is designed for the failure mode where "tests pass" is a claim, not proof: skipped tests, removed assertions, silenced linters, relaxed CI, untested new logic, or hidden capabilities.
 
 ## How it works
 
-Tarka is agentic: it chooses its next step from what it observes.
+Pramana is agentic: it chooses its next step from what it observes.
 
 1. Reads the diff under review and runs [`blast`](../blast) (deterministic diff forensics) as an instrument panel.
 2. Forms hypotheses about what the change claims to do and which signals matter.
 3. Investigates using tools — reading files, searching code, and (optionally) running commands/tests — following up on suspicious findings rather than guessing.
 4. Emits an evidence-backed verdict: `SOUND`, `CONCERNS`, or `UNSOUND`, with cited observations and a recommendation. It never auto-merges.
 
-`blast` provides the hard, deterministic floor; tarka does the reasoning above it, spending model calls only where evidence needs interpretation.
+`blast` provides the hard, deterministic floor; pramana does the reasoning above it, spending model calls only where evidence needs interpretation.
 
 ## Status
 
@@ -24,7 +24,7 @@ Tarka is agentic: it chooses its next step from what it observes.
 ## Build
 
 ```sh
-go build -o tarka ./cmd/tarka
+go build -o pramana ./cmd/pramana
 # or: make build
 ```
 
@@ -33,30 +33,30 @@ Requires Go 1.23+. No external Go dependencies.
 ## Requirements
 
 - An OpenAI-compatible chat completions API (OpenAI, many hosted providers, or a local server such as Ollama / LM Studio / vLLM exposing a compatible endpoint).
-- [`blast`](../blast) on your `PATH` (or pass `--blast /path/to/blast`) for deterministic diff findings. Tarka can still review without it, but with less signal.
+- [`blast`](../blast) on your `PATH` (or pass `--blast /path/to/blast`) for deterministic diff findings. Pramana can still review without it, but with less signal.
 
 ## Usage
 
 ```sh
 # review the current branch against its base (like a PR)
-export TARKA_MODEL="gpt-4o-mini"        # or any compatible model id
-export OPENAI_API_KEY="..."               # or TARKA_API_KEY
-./tarka review
+export PRAMANA_MODEL="gpt-4o-mini"        # or any compatible model id
+export OPENAI_API_KEY="..."               # or PRAMANA_API_KEY
+./pramana review
 
 # common forms
-./tarka review --base main
-./tarka review --staged
-./tarka review --patch change.patch
-./tarka review --intent "fix flaky session lookup"
+./pramana review --base main
+./pramana review --staged
+./pramana review --patch change.patch
+./pramana review --intent "fix flaky session lookup"
 
 # allow the agent to run tests/commands when investigating
-./tarka review --allow-run
+./pramana review --allow-run
 ```
 
 If `blast` lives elsewhere (for example the sibling repo in this workspace):
 
 ```sh
-./tarka review --blast ../blast/blast
+./pramana review --blast ../blast/blast
 ```
 
 ### Flags
@@ -68,10 +68,10 @@ If `blast` lives elsewhere (for example the sibling repo in this workspace):
 | `--patch <file>` | read a unified diff from a file, or `-` for stdin |
 | `--dir <path>` | working directory / repository root (default: cwd) |
 | `--intent <text>` | what the change claims to do (PR title/description) |
-| `--model <id>` | model name (env: `TARKA_MODEL`, `OPENAI_MODEL`) |
-| `--base-url <url>` | API base URL (env: `TARKA_BASE_URL`, `OPENAI_BASE_URL`; default `https://api.openai.com/v1`) |
-| `--api-key <key>` | API key (env: `TARKA_API_KEY`, `OPENAI_API_KEY`) |
-| `--blast <path>` | path to `blast` binary (env: `TARKA_BLAST`; default `blast`) |
+| `--model <id>` | model name (env: `PRAMANA_MODEL`, `OPENAI_MODEL`) |
+| `--base-url <url>` | API base URL (env: `PRAMANA_BASE_URL`, `OPENAI_BASE_URL`; default `https://api.openai.com/v1`) |
+| `--api-key <key>` | API key (env: `PRAMANA_API_KEY`, `OPENAI_API_KEY`) |
+| `--blast <path>` | path to `blast` binary (env: `PRAMANA_BLAST`; default `blast`) |
 | `--allow-run` | let the agent execute shell commands (e.g. run tests) |
 | `--run-timeout <d>` | per-command timeout when `--allow-run` is set (default `60s`) |
 | `--max-steps <n>` | maximum agent tool rounds (default `12`) |
@@ -98,7 +98,7 @@ Progress is written to stderr; the verdict is written to stdout. Exit `0` when a
 ## Layout
 
 ```
-cmd/tarka        CLI, flags, wiring
+cmd/pramana        CLI, flags, wiring
 internal/agent    agent loop and system prompt
 internal/llm      chat client interface and OpenAI-compatible implementation
 internal/tools    tool registry (diff, blast, fs, search, run)

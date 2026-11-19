@@ -1,9 +1,9 @@
-BIN := tarka
+BIN := pramana
 
 .PHONY: build test vet fmt run clean
 
 build:
-	go build -o $(BIN) ./cmd/tarka
+	go build -o $(BIN) ./cmd/pramana
 
 test:
 	go test ./...

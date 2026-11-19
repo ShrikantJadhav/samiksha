@@ -1,3 +1,3 @@
-module github.com/ShrikantJadhav/tarka
+module github.com/ShrikantJadhav/pramana
 
 go 1.23
