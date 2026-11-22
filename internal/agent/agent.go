@@ -49,14 +49,23 @@ func Run(ctx context.Context, client llm.Client, reg *tools.Registry, review Rev
 	// round-trip asking the model to call it.
 	logf("running blast scan")
 	blast := reg.Call(ctx, "blast_scan", "")
-	logf("blast scan complete")
+	floor, floorReason := verdictFloor(blast)
+	if floor != "" {
+		logf("blast scan complete (verdict floor: %s — %s)", floor, floorReason)
+	} else {
+		logf("blast scan complete")
+	}
 
 	if opts.SingleAgent {
 		steps := opts.MaxSteps
 		if steps <= 0 {
 			steps = 12
 		}
-		return runSingle(ctx, client, reg, review, blast, steps, logf)
+		verdict, err := runSingle(ctx, client, reg, review, blast, steps, logf)
+		if err != nil {
+			return "", err
+		}
+		return enforceFloor(verdict, floor, floorReason), nil
 	}
 
 	passes := opts.Passes
@@ -92,7 +101,11 @@ func Run(ctx context.Context, client llm.Client, reg *tools.Registry, review Rev
 	}
 
 	logf("consolidating verdict")
-	return consolidate(ctx, client, review, blast, reports)
+	verdict, err := consolidate(ctx, client, review, blast, reports, floor)
+	if err != nil {
+		return "", err
+	}
+	return enforceFloor(verdict, floor, floorReason), nil
 }
 
 // contextPrompt builds the material shared by every pass and by consolidation.

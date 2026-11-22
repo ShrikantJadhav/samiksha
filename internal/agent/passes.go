@@ -64,6 +64,7 @@ You receive deterministic blast findings, the diff, and several specialist repor
 Rules:
 - Cross-check the reports. A concern is confirmed only if it has quoted evidence (file:line plus a code/diff/output snippet). A dismissal is accepted only if the report shows what was checked and why it is safe.
 - Blast findings are deterministic facts. Every blast finding MUST appear in Findings with its quoted snippet. A blast finding can never appear in Ruled out, no matter what a specialist or the triage report said.
+- If a deterministic verdict floor is given, the verdict MUST be at least that severe. Blast severe (score 75+) means UNSOUND; elevated (50+) means at least CONCERNS. Do not soften the verdict because the change is small or the intent sounds reasonable.
 - Never claim something is "part of the commit message", "intentional", "documented", or "justified by the intent" unless that justification is literally present in the supplied material. An author's comment is not proof that a check is safe.
 - If a specialist dismissed something without evidence, treat it as unresolved and say so in Ruled out. A dismissal is never valid merely because the author wrote an explanatory comment, or because a linter suppression says the risk is intentional. A skipped test, suppressed error, committed secret, or unrelated exec/delete/outbound call is guardrail erosion even if commented.
 - The triage report's "Promoted" items override any specialist dismissal. Include them in Findings with their quoted evidence.
@@ -80,7 +81,7 @@ Respond with exactly this structure:
 <one-paragraph summary>
 
 ## Evidence
-For each key observation, cite the location and include a short quoted snippet of the actual code, diff, or output in a fenced code block.
+For each key observation, cite file:line and include a SHORT quoted snippet (the specific added/removed lines) in a fenced code block. Do not paste the entire diff or multi-file hunks; quote only the lines that prove the point.
 
 ## Findings
 - what is risky or weakened (or "None material" if sound), with severity/impact
@@ -206,9 +207,12 @@ func runPass(ctx context.Context, client llm.Client, reg *tools.Registry, p Pass
 }
 
 // consolidate turns the specialist reports into the user-facing verdict.
-func consolidate(ctx context.Context, client llm.Client, review Review, blast string, reports []string) (string, error) {
+func consolidate(ctx context.Context, client llm.Client, review Review, blast string, reports []string, floor string) (string, error) {
 	var b strings.Builder
 	b.WriteString(contextPrompt(review, blast))
+	if floor != "" {
+		fmt.Fprintf(&b, "\n## Deterministic verdict floor\nBlast requires a minimum verdict of %s. You MUST NOT return a lower verdict.\n", floor)
+	}
 	b.WriteString("\n## Specialist reports\n")
 	for _, r := range reports {
 		b.WriteString(r)
