@@ -41,7 +41,10 @@ Tools:
   --blast <path>     path to blast binary (env: PRAMANA_BLAST; default: blast)
   --allow-run        allow the agent to execute shell commands (e.g. run tests)
   --run-timeout <d>  timeout per command when --allow-run is set (default: 60s)
-  --max-steps <n>    maximum agent steps/tool rounds (default: 12)
+  --pass-steps <n>   max tool rounds per specialist pass (default: 3)
+  --single-agent     use the original single-loop reviewer instead of specialist passes
+  --show-passes      print each specialist report to stderr (debug)
+  --max-steps <n>    max steps for --single-agent mode (default: 12)
 
 Other:
   -q, --quiet        suppress progress messages (verdict still printed to stdout)
@@ -94,7 +97,10 @@ func cmdReview(args []string) int {
 	blastBin := fs.String("blast", "", "path to blast binary")
 	allowRun := fs.Bool("allow-run", false, "allow the agent to execute shell commands")
 	runTimeout := fs.Duration("run-timeout", 60*time.Second, "timeout per command")
-	maxSteps := fs.Int("max-steps", 12, "maximum agent steps")
+	maxSteps := fs.Int("max-steps", 12, "maximum agent steps (single-agent mode)")
+	passSteps := fs.Int("pass-steps", 3, "maximum tool rounds per specialist pass")
+	singleAgent := fs.Bool("single-agent", false, "use the original single-loop reviewer")
+	showPasses := fs.Bool("show-passes", false, "print specialist reports to stderr")
 	quiet := fs.Bool("quiet", false, "suppress progress messages")
 	fs.BoolVar(quiet, "q", false, "suppress progress messages")
 
@@ -143,7 +149,18 @@ func cmdReview(args []string) int {
 	}
 	reg := tools.New(env)
 
-	userPrompt := buildUserPrompt(diffLabel, diffText, *intent, workDir, *allowRun)
+	const maxDiff = 120 * 1024
+	reviewDiff := diffText
+	if len(reviewDiff) > maxDiff {
+		reviewDiff = reviewDiff[:maxDiff] + fmt.Sprintf("\n… [diff truncated, %d bytes total; use get_diff for full text]", len(diffText))
+	}
+	review := agent.Review{
+		DiffLabel: diffLabel,
+		Diff:      reviewDiff,
+		Intent:    *intent,
+		WorkDir:   workDir,
+		AllowRun:  *allowRun,
+	}
 
 	var logFn func(string)
 	if !*quiet {
@@ -158,9 +175,12 @@ func cmdReview(args []string) int {
 	logf("reviewing %s (model=%s, blast=%s, run=%v)", diffLabel, resolvedModel, resolvedBlast, *allowRun)
 
 	ctx := context.Background()
-	verdict, err := agent.Run(ctx, client, reg, userPrompt, agent.Options{
-		MaxSteps: *maxSteps,
-		Log:      logFn,
+	verdict, err := agent.Run(ctx, client, reg, review, agent.Options{
+		MaxSteps:    *maxSteps,
+		PassSteps:   *passSteps,
+		SingleAgent: *singleAgent,
+		ShowPasses:  *showPasses,
+		Log:         logFn,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "pramana: %v\n", err)
@@ -170,40 +190,6 @@ func cmdReview(args []string) int {
 	fmt.Println()
 	fmt.Println(verdict)
 	return 0
-}
-
-func buildUserPrompt(label, diff, intent, workdir string, allowRun bool) string {
-	const maxDiff = 120 * 1024
-	diffBody := diff
-	truncated := false
-	if len(diffBody) > maxDiff {
-		diffBody = diffBody[:maxDiff] + fmt.Sprintf("\n… [diff truncated, %d bytes total; use get_diff tool for full text if needed]", len(diff))
-		truncated = true
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "Review the following change.\n\n")
-	fmt.Fprintf(&b, "Diff source: %s\n", label)
-	fmt.Fprintf(&b, "Working directory: %s\n", workdir)
-	if intent != "" {
-		fmt.Fprintf(&b, "Stated intent: %s\n", intent)
-	}
-	if allowRun {
-		b.WriteString("Command execution: enabled (you may run tests/commands).\n")
-	} else {
-		b.WriteString("Command execution: disabled (run_command will refuse; reason from available evidence).\n")
-	}
-	if truncated {
-		b.WriteString("Note: diff shown below is truncated; call get_diff for the full diff if needed.\n")
-	}
-	b.WriteString("\n```diff\n")
-	b.WriteString(diffBody)
-	if !strings.HasSuffix(diffBody, "\n") {
-		b.WriteString("\n")
-	}
-	b.WriteString("```\n\n")
-	b.WriteString("Begin by running blast_scan. Then examine the diff and compare the actual changes against the stated intent. Investigate the highest-risk findings in context (read relevant files or snippets as needed) before delivering your verdict — do not stop at scan results alone.")
-	return b.String()
 }
 
 func firstNonEmpty(values ...string) string {
