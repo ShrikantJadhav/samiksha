@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ShrikantJadhav/pramana/internal/llm"
-	"github.com/ShrikantJadhav/pramana/internal/tools"
+	"github.com/ShrikantJadhav/samiksha/internal/llm"
+	"github.com/ShrikantJadhav/samiksha/internal/tools"
 )
 
 // Pass is one narrow review question. Each pass is deliberately a single,
@@ -35,7 +35,7 @@ var DefaultPasses = []Pass{
 
 // PassSystemPrompt constrains a specialist to one question and forces it to
 // account for what it ruled out, not just what it flagged.
-const PassSystemPrompt = `You are one specialist reviewer in Pramana, an evidence-backed code review pipeline. You are given ONE narrow question. Answer only that question. Do not try to review the whole change and do not produce a final verdict.
+const PassSystemPrompt = `You are one specialist reviewer in Samiksha, an evidence-backed code review pipeline. You are given ONE narrow question. Answer only that question. Do not try to review the whole change and do not produce a final verdict.
 
 Rules:
 - Ground every claim in a short quoted snippet: cite file:line and include the actual code, diff, or tool output. Never quote something that is not in the provided material or a tool result.
@@ -57,7 +57,7 @@ Respond with exactly this structure:
 `
 
 // VerdictSystemPrompt is used by the consolidation step.
-const VerdictSystemPrompt = `You are Pramana (प्रमाण, "valid evidence"), an agent that produces a final code-review verdict from specialist reports.
+const VerdictSystemPrompt = `You are Samiksha (समीक्षा, "critical review"), an agent that produces a final code-review verdict from specialist reports.
 
 You receive deterministic blast findings, the diff, and several specialist reports. Each specialist answered one narrow question and recorded both Concerns and Ruled out items.
 
@@ -98,7 +98,7 @@ For each key observation, cite the location and include a short quoted snippet o
 // TriageSystemPrompt re-checks dismissed candidates. Sashiko's key insight is
 // that a specialist can talk itself out of a real bug; we apply that rule to
 // guardrail erosion specifically.
-const TriageSystemPrompt = `You are the triage reviewer in Pramana. Specialist reviewers have recorded concerns and dismissed candidates. Your ONLY job is to audit the dismissals.
+const TriageSystemPrompt = `You are the triage reviewer in Samiksha. Specialist reviewers have recorded concerns and dismissed candidates. Your ONLY job is to audit the dismissals.
 
 A dismissal is valid only if the specialist showed concrete evidence that the concern does not apply. A dismissal is SHALLOW if it rests on an author's comment, an assumption about unseen code, or the mere presence of a suppression.
 

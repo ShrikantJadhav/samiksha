@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ShrikantJadhav/pramana/internal/llm"
+	"github.com/ShrikantJadhav/samiksha/internal/llm"
 )
 
 const maxOutput = 100 * 1024 // 100 KiB per tool result
@@ -38,7 +38,7 @@ type Registry struct {
 	defs  []llm.ToolDef
 }
 
-// New builds a registry with the standard pramana tools.
+// New builds a registry with the standard samiksha tools.
 func New(env *Env) *Registry {
 	r := &Registry{tools: map[string]tool{}}
 
@@ -342,7 +342,7 @@ func search(ctx context.Context, env *Env, pattern, path, glob string) (string, 
 
 func runCommand(ctx context.Context, env *Env, command, workdir string) (string, error) {
 	if !env.AllowRun {
-		return "command execution is disabled (start pramana with --allow-run to enable running tests/commands)", nil
+		return "command execution is disabled (start samiksha with --allow-run to enable running tests/commands)", nil
 	}
 	if strings.TrimSpace(command) == "" {
 		return "", errors.New("command is required")

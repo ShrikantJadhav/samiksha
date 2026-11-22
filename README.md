@@ -1,21 +1,21 @@
-# Pramana
+# Samiksha
 
-**प्रमाण** — *valid evidence, proof*: reaching conclusions grounded in what can be shown, not guesswork.
+**समीक्षा** — *review, critical examination*: looking closely at a change and judging it on what can be shown, not guesswork.
 
-`pramana` is a reviewer agent for code changes. Given a diff, it runs an agent loop — **model → tool calls → observations → verdict** — to gather evidence and establish whether the change is genuinely sound or merely *looks* green because its guardrails were weakened.
+`samiksha` is a reviewer agent for code changes. Given a diff, it combines a deterministic [`blast`](../blast) scan with narrow, evidence-backed review passes and a consolidation step, to establish whether the change is genuinely sound or merely *looks* green because its guardrails were weakened.
 
 It is designed for the failure mode where "tests pass" is a claim, not proof: skipped tests, removed assertions, silenced linters, relaxed CI, untested new logic, or hidden capabilities.
 
 ## How it works
 
-Pramana is agentic: it chooses its next step from what it observes.
+Samiksha is agentic within each pass — it can read files, search code, and (optionally) run commands/tests — but the overall review is structured rather than one long free-form loop:
 
-1. Reads the diff under review and runs [`blast`](../blast) (deterministic diff forensics) as an instrument panel.
-2. Forms hypotheses about what the change claims to do and which signals matter.
-3. Investigates using tools — reading files, searching code, and (optionally) running commands/tests — following up on suspicious findings rather than guessing.
-4. Emits an evidence-backed verdict: `SOUND`, `CONCERNS`, or `UNSOUND`, with cited observations and a recommendation. It never auto-merges.
+1. **Blast floor:** runs [`blast`](../blast) (deterministic diff forensics) itself. Its findings are facts that no model pass may dismiss.
+2. **Narrow passes:** three specialist questions run separately — intent vs actual diff, weakened checks, and new capabilities/data exposure. Each reports `Concerns` **and** `Ruled out` items with quoted evidence. Asking one simple question per pass avoids the "find one bug and stop" failure mode of small models.
+3. **Triage:** audits the dismissals. A dismissal is only accepted with concrete evidence; shaky self-dismissals are promoted back to concerns.
+4. **Consolidation:** one final call produces `SOUND`, `CONCERNS`, or `UNSOUND` with quoted evidence, findings, ruled-out items, a recommendation, and calibrated confidence. It never auto-merges.
 
-`blast` provides the hard, deterministic floor; pramana does the reasoning above it, spending model calls only where evidence needs interpretation.
+`--single-agent` keeps the original one-loop reviewer for A/B comparisons. `--show-passes` prints each intermediate report to stderr for debugging.
 
 ## Status
 
@@ -24,7 +24,7 @@ Pramana is agentic: it chooses its next step from what it observes.
 ## Build
 
 ```sh
-go build -o pramana ./cmd/pramana
+go build -o samiksha ./cmd/samiksha
 # or: make build
 ```
 
@@ -33,30 +33,30 @@ Requires Go 1.23+. No external Go dependencies.
 ## Requirements
 
 - An OpenAI-compatible chat completions API (OpenAI, many hosted providers, or a local server such as Ollama / LM Studio / vLLM exposing a compatible endpoint).
-- [`blast`](../blast) on your `PATH` (or pass `--blast /path/to/blast`) for deterministic diff findings. Pramana can still review without it, but with less signal.
+- [`blast`](../blast) on your `PATH` (or pass `--blast /path/to/blast`) for deterministic diff findings. Samiksha can still review without it, but with less signal.
 
 ## Usage
 
 ```sh
 # review the current branch against its base (like a PR)
-export PRAMANA_MODEL="gpt-4o-mini"        # or any compatible model id
-export OPENAI_API_KEY="..."               # or PRAMANA_API_KEY
-./pramana review
+export SAMIKSHA_MODEL="gpt-4o-mini"        # or any compatible model id
+export OPENAI_API_KEY="..."               # or SAMIKSHA_API_KEY
+./samiksha review
 
 # common forms
-./pramana review --base main
-./pramana review --staged
-./pramana review --patch change.patch
-./pramana review --intent "fix flaky session lookup"
+./samiksha review --base main
+./samiksha review --staged
+./samiksha review --patch change.patch
+./samiksha review --intent "fix flaky session lookup"
 
 # allow the agent to run tests/commands when investigating
-./pramana review --allow-run
+./samiksha review --allow-run
 ```
 
 If `blast` lives elsewhere (for example the sibling repo in this workspace):
 
 ```sh
-./pramana review --blast ../blast/blast
+./samiksha review --blast ../blast/blast
 ```
 
 ### Flags
@@ -68,13 +68,16 @@ If `blast` lives elsewhere (for example the sibling repo in this workspace):
 | `--patch <file>` | read a unified diff from a file, or `-` for stdin |
 | `--dir <path>` | working directory / repository root (default: cwd) |
 | `--intent <text>` | what the change claims to do (PR title/description) |
-| `--model <id>` | model name (env: `PRAMANA_MODEL`, `OPENAI_MODEL`) |
-| `--base-url <url>` | API base URL (env: `PRAMANA_BASE_URL`, `OPENAI_BASE_URL`; default `https://api.openai.com/v1`) |
-| `--api-key <key>` | API key (env: `PRAMANA_API_KEY`, `OPENAI_API_KEY`) |
-| `--blast <path>` | path to `blast` binary (env: `PRAMANA_BLAST`; default `blast`) |
+| `--model <id>` | model name (env: `SAMIKSHA_MODEL`, `OPENAI_MODEL`) |
+| `--base-url <url>` | API base URL (env: `SAMIKSHA_BASE_URL`, `OPENAI_BASE_URL`; default `https://api.openai.com/v1`) |
+| `--api-key <key>` | API key (env: `SAMIKSHA_API_KEY`, `OPENAI_API_KEY`) |
+| `--blast <path>` | path to `blast` binary (env: `SAMIKSHA_BLAST`; default `blast`) |
 | `--allow-run` | let the agent execute shell commands (e.g. run tests) |
 | `--run-timeout <d>` | per-command timeout when `--allow-run` is set (default `60s`) |
-| `--max-steps <n>` | maximum agent tool rounds (default `12`) |
+| `--pass-steps <n>` | max tool rounds per specialist pass (default `3`) |
+| `--single-agent` | use the original single-loop reviewer instead of specialist passes |
+| `--show-passes` | print intermediate pass/triage reports to stderr |
+| `--max-steps <n>` | max steps for `--single-agent` mode (default `12`) |
 | `-q, --quiet` | suppress progress messages (verdict still printed to stdout) |
 
 Progress is written to stderr; the verdict is written to stdout. Exit `0` when a verdict is produced, `2` on error.
@@ -98,8 +101,8 @@ Progress is written to stderr; the verdict is written to stdout. Exit `0` when a
 ## Layout
 
 ```
-cmd/pramana        CLI, flags, wiring
-internal/agent    agent loop and system prompt
+cmd/samiksha         CLI, flags, wiring
+internal/agent      structured pipeline: passes, triage, consolidation, single-agent loop
 internal/llm      chat client interface and OpenAI-compatible implementation
 internal/tools    tool registry (diff, blast, fs, search, run)
 internal/diffsource  diff acquisition (git base/staged/patch/stdin)

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ShrikantJadhav/pramana/internal/llm"
-	"github.com/ShrikantJadhav/pramana/internal/tools"
+	"github.com/ShrikantJadhav/samiksha/internal/llm"
+	"github.com/ShrikantJadhav/samiksha/internal/tools"
 )
 
 // Review is the shared context for a single review. The diff may already be

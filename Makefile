@@ -1,9 +1,9 @@
-BIN := pramana
+BIN := samiksha
 
 .PHONY: build test vet fmt run clean
 
 build:
-	go build -o $(BIN) ./cmd/pramana
+	go build -o $(BIN) ./cmd/samiksha
 
 test:
 	go test ./...

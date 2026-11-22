@@ -8,20 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ShrikantJadhav/pramana/internal/agent"
-	"github.com/ShrikantJadhav/pramana/internal/diffsource"
-	"github.com/ShrikantJadhav/pramana/internal/llm"
-	"github.com/ShrikantJadhav/pramana/internal/tools"
+	"github.com/ShrikantJadhav/samiksha/internal/agent"
+	"github.com/ShrikantJadhav/samiksha/internal/diffsource"
+	"github.com/ShrikantJadhav/samiksha/internal/llm"
+	"github.com/ShrikantJadhav/samiksha/internal/tools"
 )
 
 var version = "0.1.0-dev"
 
-const usageText = `pramana — evidence-backed review for code changes.
+const usageText = `samiksha — evidence-backed review for code changes.
 
 Usage:
-  pramana review [flags]    review a diff and produce an evidence-backed verdict
-  pramana version
-  pramana help
+  samiksha review [flags]    review a diff and produce an evidence-backed verdict
+  samiksha version
+  samiksha help
 
 Diff source (review):
   --base <ref>       diff <ref>...HEAD (default: origin/HEAD, main, master, or HEAD~1)
@@ -33,12 +33,12 @@ Review context:
   --intent <text>    what the change claims to do (e.g. PR title/description)
 
 Model (OpenAI-compatible chat completions):
-  --model <id>       model name (env: PRAMANA_MODEL, OPENAI_MODEL)
-  --base-url <url>   API base URL (env: PRAMANA_BASE_URL, OPENAI_BASE_URL; default: https://api.openai.com/v1)
-  --api-key <key>    API key (env: PRAMANA_API_KEY, OPENAI_API_KEY)
+  --model <id>       model name (env: SAMIKSHA_MODEL, OPENAI_MODEL)
+  --base-url <url>   API base URL (env: SAMIKSHA_BASE_URL, OPENAI_BASE_URL; default: https://api.openai.com/v1)
+  --api-key <key>    API key (env: SAMIKSHA_API_KEY, OPENAI_API_KEY)
 
 Tools:
-  --blast <path>     path to blast binary (env: PRAMANA_BLAST; default: blast)
+  --blast <path>     path to blast binary (env: SAMIKSHA_BLAST; default: blast)
   --allow-run        allow the agent to execute shell commands (e.g. run tests)
   --run-timeout <d>  timeout per command when --allow-run is set (default: 60s)
   --pass-steps <n>   max tool rounds per specialist pass (default: 3)
@@ -65,7 +65,7 @@ func run(args []string) int {
 	case "review":
 		return cmdReview(args[1:])
 	case "version", "--version", "-v":
-		fmt.Printf("pramana %s\n", version)
+		fmt.Printf("samiksha %s\n", version)
 		return 0
 	case "help", "-h", "--help":
 		fmt.Print(usageText)
@@ -75,7 +75,7 @@ func run(args []string) int {
 		if strings.HasPrefix(args[0], "-") {
 			return cmdReview(args)
 		}
-		fmt.Fprintf(os.Stderr, "pramana: unknown command %q\n\n%s", args[0], usageText)
+		fmt.Fprintf(os.Stderr, "samiksha: unknown command %q\n\n%s", args[0], usageText)
 		return 2
 	}
 }
@@ -120,21 +120,22 @@ func cmdReview(args []string) int {
 
 	diffText, diffLabel, err := src.Read()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pramana: reading diff: %v\n", err)
+		fmt.Fprintf(os.Stderr, "samiksha: reading diff: %v\n", err)
 		return 2
 	}
 	if strings.TrimSpace(diffText) == "" {
-		fmt.Println("pramana: no changes detected")
+		fmt.Println("samiksha: no changes detected")
 		return 0
 	}
 
-	resolvedModel := firstNonEmpty(*model, os.Getenv("PRAMANA_MODEL"), os.Getenv("OPENAI_MODEL"))
-	resolvedBaseURL := firstNonEmpty(*baseURL, os.Getenv("PRAMANA_BASE_URL"), os.Getenv("OPENAI_BASE_URL"), os.Getenv("OPENAI_API_BASE"), "https://api.openai.com/v1")
-	resolvedKey := firstNonEmpty(*apiKey, os.Getenv("PRAMANA_API_KEY"), os.Getenv("OPENAI_API_KEY"))
-	resolvedBlast := firstNonEmpty(*blastBin, os.Getenv("PRAMANA_BLAST"), "blast")
+	// PRAMANA_* names are still accepted for compatibility with the old name.
+	resolvedModel := firstNonEmpty(*model, os.Getenv("SAMIKSHA_MODEL"), os.Getenv("PRAMANA_MODEL"), os.Getenv("OPENAI_MODEL"))
+	resolvedBaseURL := firstNonEmpty(*baseURL, os.Getenv("SAMIKSHA_BASE_URL"), os.Getenv("PRAMANA_BASE_URL"), os.Getenv("OPENAI_BASE_URL"), os.Getenv("OPENAI_API_BASE"), "https://api.openai.com/v1")
+	resolvedKey := firstNonEmpty(*apiKey, os.Getenv("SAMIKSHA_API_KEY"), os.Getenv("PRAMANA_API_KEY"), os.Getenv("OPENAI_API_KEY"))
+	resolvedBlast := firstNonEmpty(*blastBin, os.Getenv("SAMIKSHA_BLAST"), os.Getenv("PRAMANA_BLAST"), "blast")
 
 	if resolvedModel == "" {
-		fmt.Fprintln(os.Stderr, "pramana: no model configured (set --model or PRAMANA_MODEL / OPENAI_MODEL)")
+		fmt.Fprintln(os.Stderr, "samiksha: no model configured (set --model or SAMIKSHA_MODEL / OPENAI_MODEL)")
 		return 2
 	}
 
@@ -164,7 +165,7 @@ func cmdReview(args []string) int {
 
 	var logFn func(string)
 	if !*quiet {
-		logFn = func(msg string) { fmt.Fprintln(os.Stderr, "pramana:", msg) }
+		logFn = func(msg string) { fmt.Fprintln(os.Stderr, "samiksha:", msg) }
 	}
 
 	logf := func(format string, args ...any) {
@@ -183,7 +184,7 @@ func cmdReview(args []string) int {
 		Log:         logFn,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pramana: %v\n", err)
+		fmt.Fprintf(os.Stderr, "samiksha: %v\n", err)
 		return 2
 	}
 

@@ -1,3 +1,3 @@
-module github.com/ShrikantJadhav/pramana
+module github.com/ShrikantJadhav/samiksha
 
 go 1.23
