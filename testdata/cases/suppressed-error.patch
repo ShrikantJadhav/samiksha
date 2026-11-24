@@ -1,0 +1,10 @@
+diff --git a/internal/store/write.go b/internal/store/write.go
+--- a/internal/store/write.go
++++ b/internal/store/write.go
+@@ -12,4 +12,5 @@ func Write(path string, data []byte) {
+-	if err := os.WriteFile(path, data, 0644); err != nil {
+-		return err
+-	}
++	//nolint:errcheck
++	_ = os.WriteFile(path, data, 0644)
+ }

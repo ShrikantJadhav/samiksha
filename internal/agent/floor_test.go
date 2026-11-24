@@ -14,6 +14,7 @@ func TestVerdictFloor(t *testing.T) {
 		{"critical", `{"score":40,"verdict":"high","findings":[{"severity":"critical"}]}`, "UNSOUND"},
 		{"severe score", `{"score":100,"verdict":"severe","findings":[]}`, "UNSOUND"},
 		{"elevated score", `{"score":60,"verdict":"elevated","findings":[]}`, "CONCERNS"},
+		{"high finding", `{"score":30,"verdict":"moderate","findings":[{"severity":"high"}]}`, "CONCERNS"},
 		{"low score", `{"score":10,"verdict":"low","findings":[]}`, ""},
 		{"bad json", `not json`, ""},
 	}

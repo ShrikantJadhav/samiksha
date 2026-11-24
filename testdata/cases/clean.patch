@@ -1,0 +1,33 @@
+diff --git a/internal/api/validate.go b/internal/api/validate.go
+new file mode 100644
+--- /dev/null
++++ b/internal/api/validate.go
+@@ -0,0 +1,10 @@
++package api
++
++import "strings"
++
++// ValidateSessionID reports whether id looks like a session ID.
++func ValidateSessionID(id string) bool {
++	if id == "" {
++		return false
++	}
++	return strings.HasPrefix(id, "sess_")
++}
+diff --git a/internal/api/validate_test.go b/internal/api/validate_test.go
+new file mode 100644
+--- /dev/null
++++ b/internal/api/validate_test.go
+@@ -0,0 +1,12 @@
++package api
++
++import "testing"
++
++func TestValidateSessionID(t *testing.T) {
++	if ValidateSessionID("") {
++		t.Fatal("empty ID should be invalid")
++	}
++	if !ValidateSessionID("sess_abc") {
++		t.Fatal("valid ID rejected")
++	}
++}

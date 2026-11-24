@@ -1,6 +1,6 @@
 BIN := samiksha
 
-.PHONY: build test vet fmt run clean
+.PHONY: build test vet fmt run clean eval
 
 build:
 	go build -o $(BIN) ./cmd/samiksha
@@ -13,6 +13,9 @@ vet:
 
 fmt:
 	gofmt -l -w .
+
+eval:
+	sh scripts/eval.sh $(ARGS)
 
 clean:
 	rm -f $(BIN)

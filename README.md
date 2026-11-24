@@ -10,7 +10,7 @@ It is designed for the failure mode where "tests pass" is a claim, not proof: sk
 
 Samiksha is agentic within each pass — it can read files, search code, and (optionally) run commands/tests — but the overall review is structured rather than one long free-form loop:
 
-1. **Blast floor:** runs [`blast`](../blast) (deterministic diff forensics) itself. Its findings are facts that no model pass may dismiss.
+1. **Blast floor:** runs [`blast`](../blast) (deterministic diff forensics) itself. Its findings are facts no model pass may dismiss: a critical finding or score ≥ 75 forces `UNSOUND`; a high finding or score ≥ 50 forces at least `CONCERNS`.
 2. **Narrow passes:** three specialist questions run separately — intent vs actual diff, weakened checks, and new capabilities/data exposure. Each reports `Concerns` **and** `Ruled out` items with quoted evidence. Asking one simple question per pass avoids the "find one bug and stop" failure mode of small models.
 3. **Triage:** audits the dismissals. A dismissal is only accepted with concrete evidence; shaky self-dismissals are promoted back to concerns.
 4. **Consolidation:** one final call produces `SOUND`, `CONCERNS`, or `UNSOUND` with quoted evidence, findings, ruled-out items, a recommendation, and calibrated confidence. It never auto-merges.
@@ -92,6 +92,27 @@ Progress is written to stderr; the verdict is written to stdout. Exit `0` when a
 | `list_dir` | list directory entries |
 | `search` | regex search over files (`rg` if available, else `grep`) |
 | `run_command` | execute a shell command (only when `--allow-run` is set) |
+
+## Eval harness
+
+A small labelled benchmark lives in `testdata/cases/`: each patch has an expected verdict and the evidence markers the review must quote. The runner executes the CLI for every case and prints a scoreboard.
+
+```sh
+make build
+
+# structured pipeline (default), using the local Ollama model
+scripts/eval.sh
+
+# compare with the old single-agent loop
+scripts/eval.sh --mode both
+
+# one case only, and fail the command if the verdict is wrong
+scripts/eval.sh --cases sketchy --strict
+```
+
+Options: `--model`, `--base-url`, `--api-key`, `--blast`, `--binary`, `--mode`, `--cases`, `--timeout`, `--strict`. Raw stdout/stderr for each run is saved in `testdata/eval-out/` (gitignored) for inspection.
+
+Use this before and after prompt, model, or pipeline changes — it is the scoreboard for deciding whether a change actually helped.
 
 ## Safety notes
 

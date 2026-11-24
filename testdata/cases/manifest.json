@@ -1,0 +1,52 @@
+{
+  "cases": [
+    {
+      "name": "sketchy",
+      "patch": "sketchy.patch",
+      "intent": "fix session lookup",
+      "expect_verdict": "UNSOUND",
+      "expect_evidence": ["t.Skip", "OPENAI_API_KEY", "exec.Command", "os.RemoveAll", "nolint:errcheck"],
+      "note": "multi-issue guardrail erosion; blast floor forces UNSOUND"
+    },
+    {
+      "name": "skipped-test",
+      "patch": "skipped-test.patch",
+      "intent": "make CI green",
+      "expect_verdict": "UNSOUND",
+      "expect_evidence": ["t.Skip", "session_test.go"],
+      "note": "single critical test-integrity finding"
+    },
+    {
+      "name": "clean",
+      "patch": "clean.patch",
+      "intent": "add session ID validation",
+      "expect_verdict": "SOUND",
+      "expect_evidence": ["ValidateSessionID", "TestValidateSessionID"],
+      "note": "new helper with tests, no blast findings"
+    },
+    {
+      "name": "committed-secret",
+      "patch": "committed-secret.patch",
+      "intent": "add production config",
+      "expect_verdict": "CONCERNS",
+      "expect_evidence": ["AWS_SECRET_ACCESS_KEY", "DATABASE_PASSWORD"],
+      "note": "high artifact finding, no critical"
+    },
+    {
+      "name": "suppressed-error",
+      "patch": "suppressed-error.patch",
+      "intent": "simplify file write",
+      "expect_verdict": "CONCERNS",
+      "expect_evidence": ["nolint:errcheck", "os.WriteFile"],
+      "note": "silenced error check"
+    },
+    {
+      "name": "intent-mismatch",
+      "patch": "intent-mismatch.patch",
+      "intent": "fix typo in README",
+      "expect_verdict": "CONCERNS",
+      "expect_evidence": ["telemetry.example.com", "exec.Command"],
+      "note": "diff has nothing to do with the stated intent"
+    }
+  ]
+}

@@ -22,10 +22,13 @@ func verdictFloor(blast string) (string, string) {
 	if err := json.Unmarshal([]byte(blast), &b); err != nil {
 		return "", ""
 	}
-	critical := 0
+	critical, high := 0, 0
 	for _, f := range b.Findings {
-		if strings.EqualFold(f.Severity, "critical") {
+		switch {
+		case strings.EqualFold(f.Severity, "critical"):
 			critical++
+		case strings.EqualFold(f.Severity, "high"):
+			high++
 		}
 	}
 	if critical > 0 {
@@ -34,8 +37,8 @@ func verdictFloor(blast string) (string, string) {
 	if b.Score >= 75 || strings.EqualFold(b.Verdict, "severe") {
 		return "UNSOUND", fmt.Sprintf("blast score %d (severe)", b.Score)
 	}
-	if b.Score >= 50 || strings.EqualFold(b.Verdict, "elevated") {
-		return "CONCERNS", fmt.Sprintf("blast score %d (elevated)", b.Score)
+	if b.Score >= 50 || strings.EqualFold(b.Verdict, "elevated") || high > 0 {
+		return "CONCERNS", fmt.Sprintf("blast score %d, %d high finding(s)", b.Score, high)
 	}
 	return "", ""
 }
